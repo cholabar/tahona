@@ -246,18 +246,25 @@ document.getElementById('btn-ir-resumen').addEventListener('click', () => showPa
 
 // ── Login / Logout ───────────────────────────────────────────
 function doLogin() {
-  const nombre = document.getElementById('login-nombre').value;
-  const pass   = document.getElementById('login-pass').value;
-  if (PASSWORDS[nombre] === pass) {
-    usuario = nombre;
-    localStorage.setItem('tahona_user', nombre);
-    document.getElementById('login-error').style.display = 'none';
-    document.getElementById('login-pass').value = '';
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('main-app').style.display = 'block';
-    initApp();
-  } else {
-    document.getElementById('login-error').style.display = 'block';
+  try {
+    const nombre = document.getElementById('login-nombre').value;
+    const pass   = document.getElementById('login-pass').value;
+    if (PASSWORDS[nombre] === pass) {
+      usuario = nombre;
+      try { localStorage.setItem('tahona_user', nombre); } catch(e) {}
+      document.getElementById('login-error').style.display = 'none';
+      document.getElementById('login-pass').value = '';
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('main-app').style.display = 'block';
+      initApp().catch(err => {
+        document.getElementById('main-app').style.display = 'block';
+        console.error('initApp error:', err);
+      });
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+    }
+  } catch(err) {
+    alert('Error login: ' + err.message);
   }
 }
 document.getElementById('btn-login').addEventListener('click', doLogin);
