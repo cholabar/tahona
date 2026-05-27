@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Tahona</title>
+  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; max-width: 480px; margin: 0 auto; min-height: 100vh; }
+    input, select, button, label { font-family: inherit; }
+    .input-style { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 15px; outline: none; background: #fafafa; }
+    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e3a5f; color: #fff; padding: 10px 24px; border-radius: 24px; z-index: 999; font-size: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); display: none; white-space: nowrap; }
+    .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: #fff; border-top: 1px solid #e0e0e0; display: flex; box-shadow: 0 -2px 10px rgba(0,0,0,0.08); z-index: 100; }
+    .nav-btn { flex: 1; border: none; background: none; padding: 10px 0; cursor: pointer; border-top: 3px solid transparent; }
+    .nav-btn.active { border-top-color: #1e3a5f; }
+    .nav-btn .icon { font-size: 20px; }
+    .nav-btn .label { font-size: 10px; color: #999; }
+    .nav-btn.active .label { color: #1e3a5f; font-weight: 700; }
+    .page { display: none; padding-bottom: 70px; }
+    .page.active { display: block; }
+    .card { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 12px; }
+    .btn-primary { width: 100%; background: #1e3a5f; color: #fff; border: none; border-radius: 10px; padding: 14px 0; font-size: 16px; font-weight: 700; cursor: pointer; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 4px; }
+    .gasto-item { background: #fff; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.07); display: flex; justify-content: space-between; align-items: center; }
+    .media-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .media-item { position: relative; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+    .media-item img, .media-item video { width: 100%; height: 140px; object-fit: cover; display: block; }
+    .media-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.45); padding: 3px 8px; display: flex; justify-content: space-between; align-items: center; }
+    .overlay { position: fixed; inset: 0; background: rgba(0,30,60,0.75); z-index: 998; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 14px; }
+    .overlay.show { display: flex; }
+    .spinner { width: 44px; height: 44px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .upload-label { display: block; width: 100%; background: #1e3a5f; color: #fff; border-radius: 10px; padding: 14px 0; font-size: 16px; font-weight: 700; cursor: pointer; text-align: center; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+<div class="overlay" id="overlay">
+  <div class="spinner"></div>
+  <div style="color:#fff;font-size:16px;font-weight:600;" id="overlay-msg">Procesando...</div>
+  <div style="color:rgba(255,255,255,0.7);font-size:13px;" id="overlay-sub"></div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen" style="background:#0a1f3c;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+  <div style="font-size:28px;color:rgba(255,255,255,0.5);margin-bottom:6px;">⚓</div>
+  <div style="font-family:'Permanent Marker',cursive;font-size:52px;color:#fff;letter-spacing:4px;text-shadow:2px 2px 6px rgba(0,0,0,0.5);margin-bottom:4px;">TAHONA</div>
+  <div style="color:rgba(255,255,255,0.5);font-size:12px;letter-spacing:3px;margin-bottom:36px;text-transform:uppercase;">Gestión de gastos</div>
+  <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+    <h3 style="color:#1e3a5f;margin-bottom:18px;text-align:center;">Iniciá sesión</h3>
+    <div class="field">
+      <label>¿Quién sos?</label>
+      <select id="login-nombre" class="input-style"><option>Chiqui</option><option>Momo</option><option>Chola</option></select>
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="login-pass" class="input-style" placeholder="••••••••" />
+    </div>
+    <div id="login-error" style="color:#e53935;font-size:13px;margin-bottom:8px;display:none;">Contraseña incorrecta 🔒</div>
+    <button class="btn-primary" id="btn-login">Entrar</button>
+    <div style="font-size:11px;color:#bbb;text-align:center;margin-top:14px;">chiqui123 · momo123 · chola123</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app" style="display:none;">
+
+  <!-- PORTADA -->
+  <div id="page-portada" class="page active">
+    <div style="position:relative;height:260px;overflow:hidden;background:#1e3a5f;">
+      <img id="portada-img" style="width:100%;height:100%;object-fit:cover;display:none;" alt="Tahona" />
+      <div id="portada-placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
+        <div style="font-size:52px;">🚤</div>
+        <label for="portada-input" style="background:rgba(255,255,255,0.2);border:2px dashed rgba(255,255,255,0.6);color:#fff;border-radius:10px;padding:8px 20px;font-size:13px;cursor:pointer;">📷 Subir foto de portada</label>
+      </div>
+      <input type="file" id="portada-input" accept="image/*" style="display:none;" />
+      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,30,60,0.02),rgba(0,30,60,0.52));pointer-events:none;"></div>
+      <label for="portada-input" id="cambiar-foto-btn" style="display:none;position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.5);border-radius:8px;color:#fff;font-size:12px;padding:5px 12px;cursor:pointer;">✏️ Cambiar foto</label>
+      <div style="position:absolute;bottom:24px;left:0;right:0;text-align:center;pointer-events:none;">
+        <div style="font-family:'Permanent Marker',cursive;font-size:54px;color:#fff;letter-spacing:5px;text-shadow:2px 2px 0 rgba(0,0,40,0.5),4px 4px 10px rgba(0,0,0,0.35);line-height:1;">TAHONA</div>
+        <div style="color:rgba(255,255,255,0.8);font-size:11px;margin-top:8px;letter-spacing:3px;text-transform:uppercase;">Gestión de gastos compartidos</div>
+      </div>
+    </div>
+    <div style="padding:14px 16px 0;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:14px;color:#1e3a5f;">👤 Hola, <strong id="bienvenida-nombre"></strong></div>
+      <button id="btn-logout" style="background:none;border:1px solid #ccc;border-radius:8px;padding:4px 12px;font-size:12px;color:#888;cursor:pointer;">Salir</button>
+    </div>
+    <div style="padding:12px 16px;">
+      <div style="display:flex;gap:10px;margin-bottom:14px;" id="socios-cards"></div>
+      <div style="background:#1e3a5f;border-radius:14px;padding:18px 20px;color:#fff;margin-bottom:14px;">
+        <div style="font-size:13px;opacity:0.75;margin-bottom:4px;">Total de gastos</div>
+        <div style="font-size:34px;font-weight:800;" id="total-display">$0</div>
+        <div style="font-size:13px;opacity:0.75;margin-top:6px;">Cuota por socio: <strong id="cuota-display">$0</strong></div>
+        <div style="font-size:12px;opacity:0.7;margin-top:2px;" id="count-display">0 gastos</div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button id="btn-ir-cargar" style="flex:1;background:#2196f3;color:#fff;border:none;border-radius:12px;padding:14px 0;font-size:15px;font-weight:700;cursor:pointer;">➕ Cargar gasto</button>
+        <button id="btn-ir-resumen" style="flex:1;background:#fff;color:#1e3a5f;border:2px solid #1e3a5f;border-radius:12px;padding:14px 0;font-size:15px;font-weight:700;cursor:pointer;">📊 Resumen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARGAR GASTO -->
+  <div id="page-cargar" class="page" style="padding:16px;">
+    <h2 style="color:#1e3a5f;margin-bottom:20px;">➕ Cargar gasto</h2>
+    <div class="card">
+      <div class="field"><label>Fecha</label><input type="date" id="g-fecha" class="input-style" /></div>
+      <div class="field"><label>Quién pagó</label>
+        <select id="g-pagador" class="input-style"><option>Chiqui</option><option>Momo</option><option>Chola</option></select>
+      </div>
+      <div class="field"><label>Categoría</label>
+        <select id="g-categoria" class="input-style"><option>Combustible</option><option>Mantenimiento</option><option>Amarra</option><option>Seguro</option><option>Limpieza</option><option>Otros</option></select>
+      </div>
+      <div class="field"><label>Descripción (opcional)</label><input type="text" id="g-desc" class="input-style" placeholder="Ej: Nafta en Colonia" /></div>
+      <div class="field"><label>Monto ($)</label><input type="number" id="g-monto" class="input-style" placeholder="0" inputmode="decimal" /></div>
+      <button class="btn-primary" id="btn-guardar-gasto">Guardar gasto</button>
+    </div>
+  </div>
+
+  <!-- GASTOS -->
+  <div id="page-gastos" class="page" style="padding:16px;">
+    <h2 style="color:#1e3a5f;margin-bottom:16px;">📋 Gastos (<span id="gastos-count">0</span>)</h2>
+    <div id="gastos-list"><div style="text-align:center;color:#999;padding:40px;">Cargando...</div></div>
+  </div>
+
+  <!-- RESUMEN -->
+  <div id="page-resumen" class="page" style="padding:16px;">
+    <h2 style="color:#1e3a5f;margin-bottom:16px;">📊 Resumen y liquidación</h2>
+    <div style="background:#1e3a5f;border-radius:14px;padding:18px 20px;color:#fff;margin-bottom:16px;text-align:center;">
+      <div style="font-size:13px;opacity:0.8;">Total general</div>
+      <div style="font-size:36px;font-weight:900;" id="r-total">$0</div>
+      <div style="font-size:14px;opacity:0.8;margin-top:4px;">Cuota por socio: <strong id="r-cuota">$0</strong></div>
+    </div>
+    <div id="r-socios"></div>
+    <h3 style="color:#1e3a5f;margin:16px 0 10px;">Por categoría</h3>
+    <div id="r-categorias"></div>
+  </div>
+
+  <!-- ÁLBUM -->
+  <div id="page-media" class="page" style="padding:16px;">
+    <h2 style="color:#1e3a5f;margin-bottom:16px;">📸 Álbum Tahona</h2>
+    <label for="media-input" class="upload-label">➕ Agregar foto o video</label>
+    <input type="file" id="media-input" accept="image/*,video/*" multiple style="display:none;" />
+    <div id="media-empty" style="text-align:center;color:#999;padding:40px;display:none;">
+      <div style="font-size:48px;">📷</div>
+      <div>Aún no hay fotos ni videos</div>
+    </div>
+    <div id="media-loading" style="text-align:center;color:#999;padding:40px;">Cargando álbum...</div>
+    <div class="media-grid" id="media-grid"></div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="nav-btn active" data-page="portada"><div class="icon">🚤</div><div class="label">Inicio</div></button>
+    <button class="nav-btn" data-page="cargar"><div class="icon">➕</div><div class="label">Cargar</div></button>
+    <button class="nav-btn" data-page="gastos"><div class="icon">📋</div><div class="label">Gastos</div></button>
+    <button class="nav-btn" data-page="resumen"><div class="icon">📊</div><div class="label">Resumen</div></button>
+    <button class="nav-btn" data-page="media"><div class="icon">📸</div><div class="label">Álbum</div></button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ── Config ───────────────────────────────────────────────────
+const FIREBASE = {
+  apiKey: "AIzaSyDNRWUkz0y408tds8Bxg-alapOJHTTxci8",
+  authDomain: "tahona-4bced.firebaseapp.com",
+  projectId: "tahona-4bced",
+  storageBucket: "tahona-4bced.firebasestorage.app",
+  messagingSenderId: "616121039104",
+  appId: "1:616121039104:web:f2fc3b46d8eda156d09be5"
+};
+const CLOUDINARY_CLOUD  = "dsfilud4c";
+const CLOUDINARY_PRESET = "wu9w6mgl";
+
+const app = initializeApp(FIREBASE);
+const db  = getFirestore(app);
+
+const PASSWORDS  = { Chiqui: 'chiqui123', Momo: 'momo123', Chola: 'chola123' };
+const SOCIOS     = ['Chiqui', 'Momo', 'Chola'];
+const CATEGORIAS = ['Combustible','Mantenimiento','Amarra','Seguro','Limpieza','Otros'];
+
+let usuario = localStorage.getItem('tahona_user') || null;
+let gastos  = [];
+let media   = [];
+
+// ── Utilidades ───────────────────────────────────────────────
+const fmt   = n => '$' + Number(n).toLocaleString('es-UY', { minimumFractionDigits: 0 });
+const today = () => new Date().toISOString().split('T')[0];
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+function showOverlay(msg, sub) {
+  document.getElementById('overlay-msg').textContent = msg || 'Procesando...';
+  document.getElementById('overlay-sub').textContent = sub || '';
+  document.getElementById('overlay').classList.add('show');
+}
+function hideOverlay() { document.getElementById('overlay').classList.remove('show'); }
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelector(`.nav-btn[data-page="${id}"]`).classList.add('active');
+}
+
+// ── Cloudinary upload ────────────────────────────────────────
+async function uploadToCloudinary(file, onProgress) {
+  const isVideo = file.type.startsWith('video/');
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${isVideo ? 'video' : 'image'}/upload`;
+  const fd  = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round(e.loaded / e.total * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        const res = JSON.parse(xhr.responseText);
+        resolve({ url: res.secure_url, publicId: res.public_id, tipo: isVideo ? 'video' : 'foto' });
+      } else {
+        reject(new Error('Error Cloudinary: ' + xhr.status));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Error de red'));
+    xhr.send(fd);
+  });
+}
+
+// ── Nav ──────────────────────────────────────────────────────
+document.querySelectorAll('.nav-btn').forEach(btn =>
+  btn.addEventListener('click', () => showPage(btn.dataset.page)));
+document.getElementById('btn-ir-cargar').addEventListener('click',  () => showPage('cargar'));
+document.getElementById('btn-ir-resumen').addEventListener('click', () => showPage('resumen'));
+
+// ── Login / Logout ───────────────────────────────────────────
+function doLogin() {
+  try {
+    const nombre = document.getElementById('login-nombre').value;
+    const pass   = document.getElementById('login-pass').value;
+    if (PASSWORDS[nombre] === pass) {
+      usuario = nombre;
+      try { localStorage.setItem('tahona_user', nombre); } catch(e) {}
+      document.getElementById('login-error').style.display = 'none';
+      document.getElementById('login-pass').value = '';
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('main-app').style.display = 'block';
+      initApp().catch(err => {
+        document.getElementById('main-app').style.display = 'block';
+        console.error('initApp error:', err);
+      });
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+    }
+  } catch(err) {
+    alert('Error login: ' + err.message);
+  }
+}
+document.getElementById('btn-login').addEventListener('click', doLogin);
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('btn-logout').addEventListener('click', () => {
+  usuario = null;
+  localStorage.removeItem('tahona_user');
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+});
+
+// ── Init ─────────────────────────────────────────────────────
+async function initApp() {
+  document.getElementById('bienvenida-nombre').textContent = usuario;
+  document.getElementById('g-fecha').value   = today();
+  document.getElementById('g-pagador').value = usuario;
+  await loadPortada();
+  subscribeGastos();
+  subscribeMedia();
+}
+
+// ── Portada ──────────────────────────────────────────────────
+async function loadPortada() {
+  try {
+    const snap = await getDoc(doc(db, 'config', 'portada'));
+    if (snap.exists()) setPortadaImg(snap.data().url);
+  } catch(e) { console.log('Sin portada aún'); }
+}
+
+function setPortadaImg(url) {
+  const img = document.getElementById('portada-img');
+  img.src = url; img.style.display = 'block';
+  document.getElementById('portada-placeholder').style.display = 'none';
+  document.getElementById('cambiar-foto-btn').style.display = 'block';
+}
+
+document.getElementById('portada-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  showOverlay('Subiendo foto de portada...', '');
+  try {
+    const res = await uploadToCloudinary(file, pct =>
+      document.getElementById('overlay-sub').textContent = pct + '%');
+    await setDoc(doc(db, 'config', 'portada'), { url: res.url });
+    setPortadaImg(res.url);
+    toast('🚤 Foto de portada actualizada para todos');
+  } catch(err) {
+    toast('❌ Error: ' + err.message);
+  } finally { hideOverlay(); e.target.value = ''; }
+});
+
+// ── Gastos ───────────────────────────────────────────────────
+function subscribeGastos() {
+  const q = query(collection(db, 'gastos'), orderBy('timestamp', 'desc'));
+  onSnapshot(q, snap => {
+    gastos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderPortada(); renderGastos(); renderResumen();
+  });
+}
+
+document.getElementById('btn-guardar-gasto').addEventListener('click', async () => {
+  const monto = parseFloat(document.getElementById('g-monto').value);
+  if (!monto || monto <= 0) return toast('Ingresá un monto válido');
+  showOverlay('Guardando gasto...');
+  try {
+    await addDoc(collection(db, 'gastos'), {
+      fecha:       document.getElementById('g-fecha').value,
+      pagador:     document.getElementById('g-pagador').value,
+      categoria:   document.getElementById('g-categoria').value,
+      descripcion: document.getElementById('g-desc').value,
+      monto, cargadoPor: usuario, timestamp: Date.now()
+    });
+    document.getElementById('g-monto').value = '';
+    document.getElementById('g-desc').value  = '';
+    toast('✅ Gasto guardado');
+  } catch(err) { toast('❌ Error: ' + err.message); }
+  finally { hideOverlay(); }
+});
+
+async function eliminarGasto(id) {
+  if (!confirm('¿Eliminar este gasto?')) return;
+  await deleteDoc(doc(db, 'gastos', id));
+  toast('🗑️ Gasto eliminado');
+}
+
+// ── Media ────────────────────────────────────────────────────
+function subscribeMedia() {
+  const q = query(collection(db, 'media'), orderBy('timestamp', 'desc'));
+  onSnapshot(q, snap => {
+    media = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderMedia();
+  });
+}
+
+document.getElementById('media-input').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files); if (!files.length) return;
+  let i = 0;
+  for (const file of files) {
+    i++;
+    showOverlay(`Subiendo ${i} de ${files.length}...`, '0%');
+    try {
+      const res = await uploadToCloudinary(file, pct =>
+        document.getElementById('overlay-sub').textContent = pct + '%');
+      await addDoc(collection(db, 'media'), {
+        url: res.url, publicId: res.publicId, tipo: res.tipo,
+        nombre: file.name, subidoPor: usuario, timestamp: Date.now()
+      });
+    } catch(err) { toast('❌ Error subiendo ' + file.name); }
+  }
+  hideOverlay();
+  toast('📸 ¡Listo! Archivos subidos');
+  e.target.value = '';
+});
+
+async function eliminarMedia(id) {
+  if (!confirm('¿Eliminar este archivo?')) return;
+  try {
+    await deleteDoc(doc(db, 'media', id));
+    toast('🗑️ Eliminado');
+  } catch(e) { toast('❌ Error al eliminar'); }
+}
+
+// ── Renders ──────────────────────────────────────────────────
+function renderPortada() {
+  const total = gastos.reduce((s, g) => s + g.monto, 0);
+  const cuota = total / 3;
+  document.getElementById('total-display').textContent = fmt(total);
+  document.getElementById('cuota-display').textContent = fmt(cuota);
+  document.getElementById('count-display').textContent = gastos.length + ' gastos registrados';
+  document.getElementById('socios-cards').innerHTML = SOCIOS.map(s => {
+    const p = gastos.filter(g => g.pagador === s).reduce((a, g) => a + g.monto, 0);
+    return `<div style="flex:1;background:#fff;border-radius:12px;padding:12px 8px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:2px solid ${s===usuario?'#1e3a5f':'transparent'}">
+      <div style="font-size:26px">👤</div>
+      <div style="font-weight:700;color:#1e3a5f;font-size:13px">${s}</div>
+      <div style="color:#666;font-size:11px">${fmt(p)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderGastos() {
+  document.getElementById('gastos-count').textContent = gastos.length;
+  document.getElementById('gastos-list').innerHTML = gastos.length
+    ? gastos.map(g => `
+      <div class="gasto-item">
+        <div>
+          <div style="font-weight:700;color:#1e3a5f;font-size:15px">${fmt(g.monto)}</div>
+          ${g.descripcion ? `<div style="font-size:13px;color:#444">${g.descripcion}</div>` : ''}
+          <div style="font-size:12px;color:#888">${g.fecha} · ${g.categoria} · <strong>${g.pagador}</strong></div>
+        </div>
+        <button data-id="${g.id}" class="del-gasto" style="background:none;border:none;font-size:18px;cursor:pointer;color:#e53935">🗑️</button>
+      </div>`).join('')
+    : '<div style="text-align:center;color:#999;padding:40px">No hay gastos cargados aún</div>';
+  document.querySelectorAll('.del-gasto').forEach(btn =>
+    btn.addEventListener('click', () => eliminarGasto(btn.dataset.id)));
+}
+
+function renderResumen() {
+  const total = gastos.reduce((s, g) => s + g.monto, 0);
+  const cuota = total / 3;
+  document.getElementById('r-total').textContent = fmt(total);
+  document.getElementById('r-cuota').textContent = fmt(cuota);
+  document.getElementById('r-socios').innerHTML = SOCIOS.map(s => {
+    const p    = gastos.filter(g => g.pagador === s).reduce((a, g) => a + g.monto, 0);
+    const diff = p - cuota;
+    const pct  = total > 0 ? Math.min(100, (p / total) * 100) : 0;
+    return `<div style="background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,0.07)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:700;font-size:16px;color:#1e3a5f">👤 ${s}</div>
+          <div style="font-size:13px;color:#666">Pagó: ${fmt(p)}</div>
+        </div>
+        <div style="background:${diff>=0?'#e8f5e9':'#ffebee'};color:${diff>=0?'#2e7d32':'#c62828'};border-radius:10px;padding:6px 12px;font-weight:700;font-size:13px">
+          ${diff>=0 ? `Le deben ${fmt(diff)}` : `Debe poner ${fmt(Math.abs(diff))}`}
+        </div>
+      </div>
+      <div style="margin-top:8px;background:#eee;border-radius:4px;height:6px;overflow:hidden">
+        <div style="width:${pct}%;background:#2196f3;height:100%"></div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('r-categorias').innerHTML = CATEGORIAS.map(cat => {
+    const t = gastos.filter(g => g.categoria === cat).reduce((a, g) => a + g.monto, 0);
+    return t ? `<div style="display:flex;justify-content:space-between;background:#fff;border-radius:10px;padding:10px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+      <span style="color:#444">${cat}</span><strong style="color:#1e3a5f">${fmt(t)}</strong>
+    </div>` : '';
+  }).join('') || '<div style="color:#999;font-size:13px">Sin datos aún</div>';
+}
+
+function renderMedia() {
+  document.getElementById('media-loading').style.display = 'none';
+  document.getElementById('media-empty').style.display = media.length ? 'none' : 'block';
+  document.getElementById('media-grid').innerHTML = media.map(m => `
+    <div class="media-item">
+      ${m.tipo === 'video'
+        ? `<video src="${m.url}" controls style="width:100%;height:140px;object-fit:cover;background:#000"></video>`
+        : `<img src="${m.url}" loading="lazy" style="width:100%;height:140px;object-fit:cover" />`}
+      <div class="media-overlay">
+        <span style="font-size:10px;color:#fff">${m.tipo==='video'?'🎥':'📷'} ${m.subidoPor}</span>
+        <button data-id="${m.id}" class="del-media" style="background:none;border:none;color:#fff;font-size:14px;cursor:pointer">✕</button>
+      </div>
+    </div>`).join('');
+  document.querySelectorAll('.del-media').forEach(btn =>
+    btn.addEventListener('click', () => eliminarMedia(btn.dataset.id)));
+}
+
+// ── Arrancar ─────────────────────────────────────────────────
+if (usuario) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  initApp();
+}
+</script>
+</body>
+</html>
